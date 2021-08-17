@@ -8,9 +8,9 @@
 import UIKit
 import SnapKit
 
-final class PagesGalleryCell: UICollectionViewCell, Reusable {
+public final class PagesGalleryCell: UICollectionViewCell, Reusable {
     
-    weak var customContentView: UIView?
+    public weak var customContentView: UIView?
     
     // MARK: Setup
     

@@ -2,37 +2,41 @@ import UIKit
 import SnapKit
 
 
-enum SwipeDirecton {
-    case left
-    case right
-}
-
-
 @objc
-protocol PagesGalleryDelegate: AnyObject {
+public protocol PagesGalleryDelegate: AnyObject {
     func contentForItemAt(indexPath: IndexPath) -> UIView
     func sizeForItemAt(indexPath: IndexPath) -> CGSize
     func itemCount() -> Int
     @objc optional func itemSelected(collectionView: UICollectionView, indexPath: IndexPath)
 }
 
+public extension PagesGallery {
 
-final class PagesGallery: UIView,
-    UICollectionViewDataSource,
-    UICollectionViewDelegate,
-    UICollectionViewDelegateFlowLayout
-{
-    
     struct DotConfig {
         let dotColor: UIColor
         let activeDotColor: UIColor
         let dotSize: CGFloat
         let betweenOffset: CGFloat
+        
+        public init(dotColor: UIColor, activeDotColor: UIColor, dotSize: CGFloat, betweenOffset: CGFloat) {
+            self.dotColor = dotColor
+            self.activeDotColor = activeDotColor
+            self.dotSize = dotSize
+            self.betweenOffset = betweenOffset
+        }
     }
-    
-    let dotContainer = UIView()
 
-    var collectionView: UICollectionView!
+}
+
+public final class PagesGallery: UIView,
+    UICollectionViewDataSource,
+    UICollectionViewDelegate,
+    UICollectionViewDelegateFlowLayout
+{
+    
+    public let dotContainer = UIView()
+
+    public var collectionView: UICollectionView!
 
     private let showDots: Bool
     
@@ -49,7 +53,7 @@ final class PagesGallery: UIView,
     
     // MARK: Setup
     
-    init(showDots: Bool, autoscroll: Bool, allowInertia: Bool, delegate: PagesGalleryDelegate,
+    public init(showDots: Bool, autoscroll: Bool, allowInertia: Bool, delegate: PagesGalleryDelegate,
          dotConfig: DotConfig = DotConfig(dotColor: UIColor.systemGray, activeDotColor: UIColor.white, dotSize: 8, betweenOffset: 8)) {
         self.showDots = showDots
         
@@ -118,11 +122,11 @@ final class PagesGallery: UIView,
 
     // MARK: UICollectionViewDataSource
 
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return delegate.itemCount()
     }
 
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: PagesGalleryCell.reuseIdentifier, for: indexPath) as! PagesGalleryCell
 
         let contentView = delegate.contentForItemAt(indexPath: indexPath)
@@ -133,14 +137,14 @@ final class PagesGallery: UIView,
 
     // MARK: UICollectionViewDelegateFlowLayout
 
-    func collectionView(_: UICollectionView, layout: UICollectionViewLayout, sizeForItemAt: IndexPath) -> CGSize {
+    public func collectionView(_: UICollectionView, layout: UICollectionViewLayout, sizeForItemAt: IndexPath) -> CGSize {
         delegate.sizeForItemAt(indexPath: sizeForItemAt)
     }
 
 
     // MARK: UICollectionViewDelegate
 
-    func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
+    public func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
         delegate.itemSelected?(collectionView: collectionView, indexPath: indexPath)
         return false
     }
@@ -148,17 +152,17 @@ final class PagesGallery: UIView,
 
     // MARK: UIScrollViewDelegate
 
-    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+    public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
         if (decelerate == false) {
             scrollToTheCell(cellIndex: getNearectCellIndex())
         }
     }
 
-    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+    public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         scrollToTheCell(cellIndex: getNearectCellIndex())
     }
 
-    func scrollViewWillBeginDecelerating(_ scrollView: UIScrollView) {
+    public func scrollViewWillBeginDecelerating(_ scrollView: UIScrollView) {
         if allowInertia == false {
             scrollView.setContentOffset(scrollView.contentOffset, animated: true)
             let actualPosition = scrollView.panGestureRecognizer.translation(in: scrollView.superview)
