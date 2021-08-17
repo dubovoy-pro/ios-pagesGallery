@@ -1,3 +1,3 @@
 # PagesGallery
 
-A description of this package.
+SPM package to manage onboarding screens
