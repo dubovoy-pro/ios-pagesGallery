@@ -7,7 +7,7 @@ public protocol PagesGalleryDelegate: AnyObject {
     func contentForItemAt(indexPath: IndexPath) -> UIView
     func sizeForItemAt(indexPath: IndexPath) -> CGSize
     func itemCount() -> Int
-    @objc optional func itemSelected(collectionView: UICollectionView, indexPath: IndexPath)
+    @objc optional func itemSelected(index: Int)
 }
 
 public extension PagesGallery {
@@ -40,24 +40,36 @@ public final class PagesGallery: UIView,
 
     private let showDots: Bool
     
-    private let autoscroll: Bool
-    
     private let allowInertia: Bool
     
     private let delegate: PagesGalleryDelegate
     
     private let dotConfig: DotConfig
     
-    private var selectedIndex: Int?
+    private var activeDotIndex: Int?
 
+    
+    // MARK: Actions
+
+    public func next() {
+        let itemCount = delegate.itemCount()
+        guard let currentIndex = activeDotIndex else {
+            return
+        }
+        let nextIndex = currentIndex + 1
+        if nextIndex > itemCount-1 {
+            return
+        }
+
+        scrollToTheCell(cellIndex: nextIndex)
+    }
     
     // MARK: Setup
     
-    public init(showDots: Bool, autoscroll: Bool, allowInertia: Bool, delegate: PagesGalleryDelegate,
+    public init(startIndex: Int, showDots: Bool, allowInertia: Bool, delegate: PagesGalleryDelegate,
          dotConfig: DotConfig = DotConfig(dotColor: UIColor.systemGray, activeDotColor: UIColor.white, dotSize: 8, betweenOffset: 8)) {
-        self.showDots = showDots
         
-        self.autoscroll = autoscroll
+        self.showDots = showDots
         
         self.allowInertia = allowInertia
         
@@ -67,6 +79,13 @@ public final class PagesGallery: UIView,
 
         super.init(frame: CGRect.zero)
         setupViews()
+        
+        if delegate.itemCount() > startIndex {
+            activeDotIndex = startIndex
+        }
+        updateIndicator(activeDotIndex: startIndex)
+        scrollToTheCell(cellIndex: startIndex, animated: false)
+
     }
     
     required init?(coder: NSCoder) {
@@ -92,7 +111,6 @@ public final class PagesGallery: UIView,
         }
         addSubview(dotContainer)
         setupIndicator()
-        showIndicatorAtIndex(cellIndex: 0)
     }
     
     func setupIndicator() {
@@ -145,12 +163,22 @@ public final class PagesGallery: UIView,
     // MARK: UICollectionViewDelegate
 
     public func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
-        delegate.itemSelected?(collectionView: collectionView, indexPath: indexPath)
         return false
     }
 
 
     // MARK: UIScrollViewDelegate
+    
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        
+        let currentIndex = getNearectCellIndex()
+        
+        if activeDotIndex != currentIndex {
+            activeDotIndex = currentIndex
+            updateIndicator(activeDotIndex: activeDotIndex)
+            delegate.itemSelected?(index: currentIndex)
+        }
+    }
 
     public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
         if (decelerate == false) {
@@ -212,35 +240,30 @@ public final class PagesGallery: UIView,
     }
 
     func getSelectedIndex() -> Int? {
-        guard let index = selectedIndex else {
+        guard let index = activeDotIndex else {
             return nil
         }
         return index
     }
 
-    func showIndicatorAtIndex(cellIndex: Int) {
-        selectedIndex = cellIndex
+    func updateIndicator(activeDotIndex: Int?) {
         for item in self.dotContainer.subviews {
             item.backgroundColor = dotConfig.dotColor
         }
-        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut, animations: { [weak self] in
-            if let dotView = self?.dotContainer.subviews[safe: cellIndex] {
-                dotView.backgroundColor = self?.dotConfig.activeDotColor
-            }
-        }, completion: nil)
+        if let activeDotIndex = activeDotIndex {
+            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut, animations: { [weak self] in
+                if let dotView = self?.dotContainer.subviews[safe: activeDotIndex] {
+                    dotView.backgroundColor = self?.dotConfig.activeDotColor
+                }
+            }, completion: nil)
+        }
     }
 
-    func scrollToTheCell(cellIndex: Int) {
-
-        guard self.autoscroll else {
-            return
-        }
-
-        showIndicatorAtIndex(cellIndex: cellIndex)
+    func scrollToTheCell(cellIndex: Int, animated: Bool = true) {
 
         let indexPath = IndexPath(row: cellIndex, section: 0)
 
-        collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
+        collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: animated)
     }
     
 }
