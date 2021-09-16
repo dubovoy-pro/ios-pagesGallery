@@ -17,6 +17,9 @@ public final class PagesGalleryCell: UICollectionViewCell, Reusable {
     override init(frame: CGRect) {
         super.init(frame: frame)
         isUserInteractionEnabled = true
+
+        backgroundColor = .clear
+        contentView.backgroundColor = .clear
     }
 
     required init?(coder: NSCoder) {
@@ -28,9 +31,9 @@ public final class PagesGalleryCell: UICollectionViewCell, Reusable {
             view.removeFromSuperview()
         }
         self.customContentView = customContentView
-        addSubview(customContentView)
+        contentView.addSubview(customContentView)
         customContentView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+            make.center.equalToSuperview()
         }
     }
 }

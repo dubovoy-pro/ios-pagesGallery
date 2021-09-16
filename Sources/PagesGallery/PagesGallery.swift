@@ -46,7 +46,9 @@ public final class PagesGallery: UIView,
     private let showDots: Bool
     
     private let allowInertia: Bool
-    
+
+    private let allowAutoscroll: Bool
+
     private weak var delegate: PagesGalleryDelegate?
     
     private let dotConfig: DotConfig
@@ -71,13 +73,25 @@ public final class PagesGallery: UIView,
     
     // MARK: Setup
     
-    public init(startIndex: Int, showDots: Bool, allowInertia: Bool, delegate: PagesGalleryDelegate,
-         dotConfig: DotConfig = DotConfig(dotColor: UIColor.systemGray, activeDotColor: UIColor.white, dotSize: 8, betweenOffset: 8)) {
+    public init(
+        startIndex: Int,
+        showDots: Bool,
+        allowInertia: Bool,
+        allowAutoscroll: Bool,
+        delegate: PagesGalleryDelegate,
+        dotConfig: DotConfig = DotConfig(
+            dotColor: UIColor.systemGray,
+            activeDotColor: UIColor.white,
+            dotSize: 8,
+            betweenOffset: 8)
+    ) {
         
         self.showDots = showDots
         
         self.allowInertia = allowInertia
-        
+
+        self.allowAutoscroll = allowAutoscroll
+
         self.delegate = delegate
         
         self.dotConfig = dotConfig
@@ -110,6 +124,7 @@ public final class PagesGallery: UIView,
         collectionView.dataSource = self
         collectionView.backgroundColor = UIColor.white
         collectionView.showsHorizontalScrollIndicator = false
+        
         addSubview(collectionView)
         collectionView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
@@ -119,6 +134,11 @@ public final class PagesGallery: UIView,
     }
     
     func setupIndicator() {
+        
+        guard showDots else {
+            return
+        }
+        
         dotContainer.subviews.forEach { $0.removeFromSuperview() }
         let dotCount = delegate?.itemCount() ?? Constants.defaultItemCount
         if dotCount > 0 {
@@ -188,12 +208,16 @@ public final class PagesGallery: UIView,
 
     public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
         if (decelerate == false) {
-            scrollToTheCell(cellIndex: getNearectCellIndex())
+            if allowAutoscroll {
+                scrollToTheCell(cellIndex: getNearectCellIndex())
+            }
         }
     }
 
     public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        scrollToTheCell(cellIndex: getNearectCellIndex())
+        if allowAutoscroll {
+            scrollToTheCell(cellIndex: getNearectCellIndex())
+        }
     }
 
     public func scrollViewWillBeginDecelerating(_ scrollView: UIScrollView) {
@@ -256,6 +280,11 @@ public final class PagesGallery: UIView,
     }
 
     func updateIndicator(activeDotIndex: Int?) {
+        
+        guard showDots else {
+            return
+        }
+        
         for item in self.dotContainer.subviews {
             item.backgroundColor = dotConfig.dotColor
         }
@@ -269,6 +298,11 @@ public final class PagesGallery: UIView,
     }
 
     func scrollToTheCell(cellIndex: Int, animated: Bool = true) {
+        
+        guard let cellCount = collectionView.dataSource?.collectionView(
+                collectionView, numberOfItemsInSection: 0), cellIndex < cellCount else {
+            return
+        }
 
         let indexPath = IndexPath(row: cellIndex, section: 0)
 
