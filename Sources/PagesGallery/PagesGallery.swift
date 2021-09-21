@@ -122,7 +122,7 @@ public final class PagesGallery: UIView,
         
         collectionView.delegate = self
         collectionView.dataSource = self
-        collectionView.backgroundColor = UIColor.white
+        collectionView.backgroundColor = .clear
         collectionView.showsHorizontalScrollIndicator = false
         
         addSubview(collectionView)
