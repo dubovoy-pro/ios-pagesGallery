@@ -28,10 +28,6 @@ public extension PagesGallery {
 
 }
 
-private enum Constants {
-    static let defaultItemCount = 0
-    static let defaultSize = CGSize.zero
-}
 
 public final class PagesGallery: UIView,
     UICollectionViewDataSource,
@@ -49,7 +45,7 @@ public final class PagesGallery: UIView,
 
     private let allowAutoscroll: Bool
 
-    private weak var delegate: PagesGalleryDelegate?
+    private var delegate: PagesGalleryDelegate
     
     private let dotConfig: DotConfig
     
@@ -59,7 +55,7 @@ public final class PagesGallery: UIView,
     // MARK: Actions
 
     public func next() {
-        let itemCount = delegate?.itemCount() ?? Constants.defaultItemCount
+        let itemCount = delegate.itemCount()
         guard let currentIndex = activeDotIndex else {
             return
         }
@@ -140,7 +136,7 @@ public final class PagesGallery: UIView,
         }
         
         dotContainer.subviews.forEach { $0.removeFromSuperview() }
-        let dotCount = delegate?.itemCount() ?? Constants.defaultItemCount
+        let dotCount = delegate.itemCount()
         if dotCount > 0 {
             for index in 0...dotCount-1 {
                 let dotView = UIView()
@@ -166,15 +162,14 @@ public final class PagesGallery: UIView,
     // MARK: UICollectionViewDataSource
 
     public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return delegate?.itemCount() ?? Constants.defaultItemCount
+        return delegate.itemCount()
     }
 
     public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: PagesGalleryCell.reuseIdentifier, for: indexPath) as! PagesGalleryCell
 
-        if let contentView = delegate?.contentForItemAt(indexPath: indexPath) {
-            cell.setCustomContentView(customContentView: contentView)
-        }
+        let contentView = delegate.contentForItemAt(indexPath: indexPath)
+        cell.setCustomContentView(customContentView: contentView)
         return cell
     }
 
@@ -182,7 +177,7 @@ public final class PagesGallery: UIView,
     // MARK: UICollectionViewDelegateFlowLayout
 
     public func collectionView(_: UICollectionView, layout: UICollectionViewLayout, sizeForItemAt: IndexPath) -> CGSize {
-        delegate?.sizeForItemAt(indexPath: sizeForItemAt) ?? Constants.defaultSize
+        return delegate.sizeForItemAt(indexPath: sizeForItemAt)
     }
 
 
@@ -196,27 +191,33 @@ public final class PagesGallery: UIView,
     // MARK: UIScrollViewDelegate
     
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        
-        let currentIndex = getNearectCellIndex()
-        
-        if activeDotIndex != currentIndex {
-            activeDotIndex = currentIndex
+        guard let nearestIndex = getNearectCellIndex() else {
+            return
+        }
+        if activeDotIndex != nearestIndex {
+            activeDotIndex = nearestIndex
             updateIndicator(activeDotIndex: activeDotIndex)
-            delegate?.itemSelected?(index: currentIndex)
+            delegate.itemSelected?(index: nearestIndex)
         }
     }
 
     public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
         if (decelerate == false) {
             if allowAutoscroll {
-                scrollToTheCell(cellIndex: getNearectCellIndex())
+                guard let nearestIndex = getNearectCellIndex() else {
+                    return
+                }
+                scrollToTheCell(cellIndex: nearestIndex)
             }
         }
     }
 
     public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         if allowAutoscroll {
-            scrollToTheCell(cellIndex: getNearectCellIndex())
+            guard let nearestIndex = getNearectCellIndex() else {
+                return
+            }
+            scrollToTheCell(cellIndex: nearestIndex)
         }
     }
 
@@ -225,9 +226,11 @@ public final class PagesGallery: UIView,
             scrollView.setContentOffset(scrollView.contentOffset, animated: true)
             let actualPosition = scrollView.panGestureRecognizer.translation(in: scrollView.superview)
 
-            var currentCellIndex = getNearectCellIndex()
-            let size = delegate?.sizeForItemAt(
-                indexPath: IndexPath(row: currentCellIndex, section: 0)) ?? Constants.defaultSize
+            guard var currentCellIndex = getNearectCellIndex() else {
+                return
+            }
+            let size = delegate.sizeForItemAt(
+                indexPath: IndexPath(row: currentCellIndex, section: 0))
             let currentWidth = size.width
             if abs(actualPosition.x) < currentWidth * 0.5 {
                 if actualPosition.x < 0 {
@@ -236,7 +239,7 @@ public final class PagesGallery: UIView,
                     currentCellIndex -= 1
                 }
             }
-            let maxIndex = (delegate?.itemCount() ?? Constants.defaultItemCount) - 1
+            let maxIndex = delegate.itemCount() - 1
             if currentCellIndex > maxIndex { currentCellIndex = maxIndex }
             if currentCellIndex < 0 { currentCellIndex = 0 }
             scrollToTheCell(cellIndex: currentCellIndex)
@@ -245,15 +248,18 @@ public final class PagesGallery: UIView,
 
     // MARK: Actions
 
-    func getNearectCellIndex() -> Int {
+    func getNearectCellIndex() -> Int? {
 
         let viewCenterOnBelt: CGFloat = collectionView.contentOffset.x + collectionView.frame.width / 2
 
-        let maxIndex = delegate?.itemCount() ?? Constants.defaultItemCount - 1
+        let maxIndex = delegate.itemCount() - 1
+        if maxIndex < 0 {
+            return nil
+        }
         var cellFrames = [CGRect]()
         for i in 0...maxIndex {
-            let size = delegate?.sizeForItemAt(
-                indexPath: IndexPath(row: i, section: 0)) ?? Constants.defaultSize
+            let size = delegate.sizeForItemAt(
+                indexPath: IndexPath(row: i, section: 0))
             let x = cellFrames.last?.maxX ?? 0
             let frame = CGRect(x: x, y: 0, width: size.width, height: size.height)
             cellFrames.append(frame)
